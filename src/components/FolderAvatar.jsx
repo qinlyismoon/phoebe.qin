@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import folderImg from "/folder.png";
-import avatarImg from "/avatar.jpg";
+import folderImg from "/mac-folder-96.png";
+import avatarImg from "/profile photo.jpg";
 
 export default function FolderAvatar() {
   return (
