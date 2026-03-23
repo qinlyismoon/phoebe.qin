@@ -1,51 +1,865 @@
-import { motion } from "framer-motion";
-import folderImg from "/mac-folder-96.png";
-import avatarImg from "/profile photo.jpg";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import avatarImg from "../assets/profile-photo.jpg";
+import folderImg from "../assets/folder.png";
+import emailIcon from "../assets/email.png";
+import linkedinIcon from "../assets/linkedin.png";
+import instagramIcon from "../assets/instagram.png";
 
 export default function FolderAvatar() {
+  const hoverSoundRef = useRef(null);
+  const clickSoundRef = useRef(null);
+  const closeSoundRef = useRef(null);
+  const minimizeSoundRef = useRef(null);
+  const typingSoundRef = useRef(null);
+  const folderWrapRef = useRef(null);
+  const windowRef = useRef(null);
+  const [showWindow, setShowWindow] = useState(false);
+  const [isTrafficHover, setIsTrafficHover] = useState(false);
+  const [windowExitMode, setWindowExitMode] = useState("close");
+  const [minimizeExit, setMinimizeExit] = useState({ x: 0, y: 0, scale: 0.2 });
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
+  const [language, setLanguage] = useState("en");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const typingHoverCountRef = useRef(0);
+
+  const stopTypingSound = useCallback(() => {
+    typingHoverCountRef.current = 0;
+    pauseSound(typingSoundRef);
+  }, []);
+
+  const playSound = (audioRef) => {
+    if (isMuted) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = 0;
+    audio.play().catch(() => {
+      // Ignore autoplay-related rejections until the user interacts.
+    });
+  };
+
+  const playLoopingSound = (audioRef) => {
+    if (isMuted) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.play().catch(() => {
+      // Ignore autoplay-related rejections until the user interacts.
+    });
+  };
+
+  const pauseSound = (audioRef) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+  };
+
+  const handleFolderClick = () => {
+    stopTypingSound();
+    playSound(clickSoundRef);
+    setIsTrafficHover(false);
+    setWindowExitMode("close");
+    setMinimizeExit({ x: 0, y: 0, scale: 0.18 });
+    setIsZoomed(false);
+    setWindowPosition({ x: 0, y: 0 });
+    setShowWindow(true);
+  };
+
+  const handleCloseWindow = () => {
+    playSound(closeSoundRef);
+    stopTypingSound();
+    setIsTrafficHover(false);
+    setWindowExitMode("close");
+    setShowWindow(false);
+  };
+
+  const handleMinimizeWindow = () => {
+    playSound(minimizeSoundRef);
+    const folderRect = folderWrapRef.current?.getBoundingClientRect();
+    const windowRect = windowRef.current?.getBoundingClientRect();
+
+    if (folderRect && windowRect) {
+      const folderCenterX = folderRect.left + folderRect.width / 2;
+      const folderCenterY = folderRect.top + folderRect.height / 2;
+      const windowCenterX = windowRect.left + windowRect.width / 2;
+      const windowCenterY = windowRect.top + windowRect.height / 2;
+
+      setMinimizeExit({
+        x: folderCenterX - windowCenterX,
+        y: folderCenterY - windowCenterY,
+        scale: 0.18,
+      });
+    } else {
+      setMinimizeExit({ x: 0, y: 180, scale: 0.18 });
+    }
+
+    stopTypingSound();
+    setIsTrafficHover(false);
+    setWindowExitMode("minimize");
+    setShowWindow(false);
+  };
+
+  const handleZoomWindow = () => {
+    setIsZoomed((prev) => !prev);
+  };
+
+  const handleToggleLanguage = () => {
+    setLanguage((prev) => (prev === "en" ? "zh" : "en"));
+  };
+
+  const handleToggleTheme = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
+  const handleToggleMute = () => {
+    setIsMuted((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (isZoomed) {
+      setWindowPosition({ x: 0, y: 0 });
+    }
+  }, [isZoomed]);
+
+  useEffect(() => {
+    if (!showWindow) {
+      stopTypingSound();
+    }
+  }, [showWindow, stopTypingSound]);
+
+  useEffect(() => {
+    if (isMuted) {
+      stopTypingSound();
+      pauseSound(hoverSoundRef);
+      pauseSound(clickSoundRef);
+      pauseSound(closeSoundRef);
+      pauseSound(minimizeSoundRef);
+    }
+  }, [isMuted, stopTypingSound]);
+
+  const copy = useMemo(() => {
+    return language === "zh"
+      ? {
+          titleTop: "珑月正在设计、",
+          titleBottom: "思考与研究",
+          design: "设计作品集",
+          ux: "用户研究项目",
+          ai: "AI Playground",
+        }
+      : {
+          titleTop: "Phoebe is making,",
+          titleBottom: "thinking, and researching",
+          design: "Design",
+          ux: "UX Research",
+          ai: "AI Playground",
+        };
+  }, [language]);
+
+  const themeColors = useMemo(() => {
+    return isDarkMode
+      ? {
+          pageBg: "#111111",
+          windowBg: "#1c1c1e",
+          windowTexture:
+            "radial-gradient(circle at 18% 22%, rgba(255,255,255,0.045) 0, rgba(255,255,255,0.045) 1px, transparent 1.6px), radial-gradient(circle at 72% 64%, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1.7px), linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 22%, rgba(0,0,0,0.02) 100%)",
+          topBarBg: "#2c2c2e",
+          windowBorder: "1px solid rgba(255,255,255,0.08)",
+          text: "#f5f5f7",
+          mutedText: "rgba(245,245,247,0.45)",
+          shadow: "0 24px 60px rgba(0, 0, 0, 0.45)",
+          controlBg: "rgba(255,255,255,0.08)",
+          controlBorder: "1px solid rgba(255,255,255,0.10)",
+          controlText: "#f5f5f7",
+        }
+      : {
+          pageBg: "#ffffff",
+          windowBg: "#ffffff",
+          windowTexture:
+            "radial-gradient(circle at 20% 24%, rgba(0,0,0,0.032) 0, rgba(0,0,0,0.032) 1px, transparent 1.7px), radial-gradient(circle at 76% 68%, rgba(0,0,0,0.022) 0, rgba(0,0,0,0.022) 1px, transparent 1.8px), linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,248,248,0.96) 100%)",
+          topBarBg: "#f5f5f7",
+          windowBorder: "1px solid rgba(0,0,0,0.06)",
+          text: "#111111",
+          mutedText: "rgba(17,17,17,0.45)",
+          shadow: "0 24px 60px rgba(0, 0, 0, 0.16)",
+          controlBg: "rgba(60,60,67,0.18)",
+          controlBorder: "1px solid rgba(255,255,255,0.18)",
+          controlText: "#111111",
+        };
+  }, [isDarkMode]);
+  const sunIconUrl = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/icons/Weather/sun-fill.svg";
+  const moonIconUrl = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/icons/Weather/moon-fill.svg";
+  const volumeUpIconUrl = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/icons/Media/volume-up-fill.svg";
+  const volumeMuteIconUrl = "https://cdn.jsdelivr.net/npm/remixicon@4.9.1/icons/Media/volume-mute-fill.svg";
+
+  const handleWindowPointerDown = (event) => {
+    event.stopPropagation();
+  };
+
   return (
-    <div className="page">
+    <div
+      className="page"
+      style={{
+        background: themeColors.pageBg,
+        transition: "background 0.35s ease",
+      }}
+    >
       <motion.div
+        ref={folderWrapRef}
+        initial={false}
         whileHover="hover"
         className="folder-wrap"
+        onHoverStart={() => playSound(hoverSoundRef)}
+        onClick={handleFolderClick}
       >
-        <motion.div
-          className="avatar-shell"
-          initial={{ scale: 0.92, opacity: 0.82, y: 8 }}
-          variants={{ hover: { scale: 1.06, opacity: 1, y: 0 } }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <motion.img
-            src={avatarImg}
-            alt="avatar"
-            className="avatar"
-            initial={{ y: 42, scale: 1 }}
-            variants={{ hover: { y: -20, scale: 1.03 } }}
-            transition={{ duration: 0.85, ease: [0.2, 0.9, 0.2, 1] }}
-          />
-        </motion.div>
+        <audio ref={hoverSoundRef} preload="auto" src="/hover-pop.mp3" />
+        <audio ref={clickSoundRef} preload="auto" src="/folder-click.mp3" />
+        <audio ref={closeSoundRef} preload="auto" src="/window-close.mp3" />
+        <audio ref={minimizeSoundRef} preload="auto" src="/window-minimize.mp3" />
+        <audio ref={typingSoundRef} preload="auto" src="/typing-loop.mp3" loop />
 
         <motion.div
-          className="shadow"
-          initial={{ opacity: 0.45, scale: 0.9 }}
-          variants={{ hover: { opacity: 0.65, scale: 1.08 } }}
-          transition={{ duration: 0.55 }}
+          className="ground-shadow"
+          initial={{ opacity: isDarkMode ? 0 : 0.18, scale: 0.88 }}
+          variants={{
+            hover: { opacity: isDarkMode ? 0 : 0.28, scale: 1.02 },
+          }}
+          transition={{ duration: 0.45 }}
+          style={{
+            filter: undefined,
+            mixBlendMode: undefined,
+          }}
         />
 
         <motion.div
-          className="folder-box"
-          variants={{ hover: { y: -4, scale: 1.02 } }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="avatar-shell"
+          initial={{ y: 80, scale: 0.5, opacity: 0.9 }}
+          variants={{
+            hover: { y: -78, scale: 1, opacity: 0.95 },
+          }}
+          transition={{ duration: 1.2, ease: [0.2, 0.9, 0.2, 1] }}
+        >
+          <img src={avatarImg} alt="Avatar" className="avatar" />
+        </motion.div>
+
+        <motion.div
+          className="folder-back"
+          variants={{ hover: { y: -2 } }}
+          transition={{ duration: 0.45 }}
+          style={{
+            filter: undefined,
+          }}
         >
           <motion.img
             src={folderImg}
-            alt="folder"
-            className="folder"
-            variants={{ hover: { rotate: -1.2, y: -2 } }}
-            transition={{ duration: 0.45 }}
+            alt="Folder"
+            className="folder-img"
+            variants={{ hover: { y: -2, scale: 1.03 } }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           />
         </motion.div>
       </motion.div>
+
+      <AnimatePresence
+        onExitComplete={() => {
+          if (!showWindow) {
+            stopTypingSound();
+            setIsTrafficHover(false);
+            setIsZoomed(false);
+            setWindowPosition({ x: 0, y: 0 });
+            setWindowExitMode("close");
+            setMinimizeExit({ x: 0, y: 0, scale: 0.18 });
+          }
+        }}
+      >
+        {showWindow && (
+          <motion.div
+          key={isZoomed ? "folder-window-zoomed" : "folder-window-windowed"}
+          ref={windowRef}
+          drag={!isZoomed}
+          dragMomentum={false}
+          dragElastic={0.08}
+          onPointerDown={handleWindowPointerDown}
+          onDragEnd={(_, info) => {
+            if (!isZoomed) {
+              setWindowPosition((prev) => ({
+                x: prev.x + info.offset.x,
+                y: prev.y + info.offset.y,
+              }));
+            }
+          }}
+          initial={{ opacity: 0, scale: 0.92, x: 0, y: 20 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            x: isZoomed ? 0 : windowPosition.x,
+            y: isZoomed ? 0 : windowPosition.y,
+          }}
+          exit={
+            windowExitMode === "minimize"
+              ? {
+                  opacity: 0.12,
+                  scale: minimizeExit.scale,
+                  x: minimizeExit.x,
+                  y: minimizeExit.y,
+                }
+              : { opacity: 0, scale: 0.96, y: 12 }
+          }
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            position: "fixed",
+            top: isZoomed ? 0 : "clamp(24px, 10vh, 96px)",
+            left: isZoomed ? 0 : "clamp(24px, 8vw, 96px)",
+            right: isZoomed ? 0 : "auto",
+            bottom: isZoomed ? 0 : "auto",
+            width: isZoomed ? "100vw" : "min(680px, calc(100vw - 48px))",
+            height: isZoomed ? "100vh" : "min(520px, calc(100vh - 48px))",
+            backgroundColor: themeColors.windowBg,
+            backgroundImage: themeColors.windowTexture,
+            backgroundBlendMode: "normal",
+            borderRadius: isZoomed ? "20px" : "20px",
+            boxShadow: themeColors.shadow,
+            border: isZoomed ? "none" : themeColors.windowBorder,
+            zIndex: 50,
+            overflow: "hidden",
+            backgroundRepeat: "repeat, repeat, no-repeat",
+            backgroundSize: "180px 180px, 220px 220px, 100% 100%",
+            pointerEvents: "auto",
+            boxSizing: "border-box",
+            transition: "top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease, border-radius 0.45s ease",
+          }}
+        >
+          {/* Top bar */}
+          <div
+            onDoubleClick={handleZoomWindow}
+            style={{
+              height: "40px",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 12px",
+              background: themeColors.topBarBg,
+              borderBottom: isDarkMode
+                ? "1px solid rgba(255,255,255,0.08)"
+                : "1px solid rgba(0,0,0,0.06)",
+              cursor: "grab",
+            }}
+          >
+            <div
+              style={{ display: "flex", gap: "8px" }}
+              onMouseEnter={() => {
+                setIsTrafficHover(true);
+              }}
+              onMouseLeave={() => {
+                setIsTrafficHover(false);
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Close window"
+                onClick={handleCloseWindow}
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "50%",
+                  background: "#ff5f57",
+                  border: "none",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1,
+                    color: "rgba(60, 0, 0, 0.75)",
+                    opacity: isTrafficHover ? 1 : 0,
+                    transition: "opacity 0.15s ease",
+                    transform: "translateY(0.5px)",
+                  }}
+                >
+                  ×
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label="Minimize window"
+                onClick={handleMinimizeWindow}
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "50%",
+                  background: "#febc2e",
+                  border: "none",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    color: "rgba(90, 55, 0, 0.78)",
+                    opacity: isTrafficHover ? 1 : 0,
+                    transition: "opacity 0.15s ease",
+                    transform: "translateY(-1px)",
+                  }}
+                >
+                  –
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label="Zoom window"
+                onClick={handleZoomWindow}
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "50%",
+                  background: "#28c840",
+                  border: "none",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  aria-hidden="true"
+                  style={{
+                    opacity: isTrafficHover ? 1 : 0,
+                    transition: "opacity 0.15s ease",
+                    transform: "translateY(-0.5px)",
+                  }}
+                >
+                  {isZoomed ? (
+                    <>
+                      {/* inward triangles (restore) */}
+                      <polygon points="0.0,3.7 3.7,3.7 3.7,0.0" fill="rgba(0, 70, 12, 0.8)" />
+                      <polygon points="8.0,4.3 4.3,4.3 4.3,8.0" fill="rgba(0, 70, 12, 0.8)" />
+                    </>
+                  ) : (
+                    <>
+                      {/* outward triangles (maximize) */}
+                      <polygon points="0.8,0.8 5.6,0.8 0.8,5.6" fill="rgba(0, 70, 12, 0.8)" />
+                      <polygon points="7.2,7.2 2.4,7.2 7.2,2.4" fill="rgba(0, 70, 12, 0.8)" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Content area */}
+          <div
+            style={{
+              height: "calc(100% - 40px)",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              gap: isZoomed ? "72px" : "44px",
+              padding: isZoomed ? "160px 64px 90px" : "110px 40px 84px",
+              fontFamily:
+                "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Helvetica, Arial, sans-serif",
+              color: themeColors.text,
+              overflowY: "auto",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              style={{ maxWidth: isZoomed ? "1500px" : "100%" }}
+              onMouseEnter={() => {
+                typingHoverCountRef.current += 1;
+                if (typingHoverCountRef.current === 1) {
+                  playLoopingSound(typingSoundRef);
+                }
+              }}
+              onMouseLeave={() => {
+                typingHoverCountRef.current = Math.max(0, typingHoverCountRef.current - 1);
+                if (typingHoverCountRef.current === 0) {
+                  pauseSound(typingSoundRef);
+                }
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isZoomed ? "clamp(54px, 8vw, 120px)" : "clamp(34px, 6vw, 64px)",
+                  lineHeight: 0.95,
+                  fontWeight: 500,
+                  letterSpacing: "-0.05em",
+                  marginBottom: isZoomed ? "18px" : "12px",
+                }}
+              >
+                {copy.titleTop}
+                <br />
+                {copy.titleBottom}
+                <span
+                  style={{
+                    display: "inline-flex",
+                    marginLeft: "0.12em",
+                  }}
+                >
+                  {[0, 1, 2].map((dot) => (
+                    <motion.span
+                      key={dot}
+                      animate={{ opacity: [0.2, 1, 0.2] }}
+                      transition={{
+                        duration: 1.2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: dot * 0.18,
+                      }}
+                      style={{ display: "inline-block", width: "0.24em" }}
+                    >
+                      .
+                    </motion.span>
+                  ))}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                gap: isZoomed ? "8px" : "4px",
+                alignItems: "end",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => window.open("https://cooked-mind-ec6.notion.site/Phoebe-s-Design-Work-32c7fb6b97a580c3abd8cc8abe47a2da?source=copy_link", "_blank", "noopener,noreferrer")}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = themeColors.mutedText;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = themeColors.text;
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      fontSize: isZoomed ? "24px" : "18px",
+                      lineHeight: 1.2,
+                      color: themeColors.text,
+                      textDecoration: "underline",
+                      textUnderlineOffset: "4px",
+                      cursor: "pointer",
+                      transition: "color 0.18s ease",
+                    }}
+                  >
+                    {copy.design}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open("https://cooked-mind-ec6.notion.site/Phoebe-s-Research-projects-32c7fb6b97a580e88088e0da2abf1883?source=copy_link", "_blank", "noopener,noreferrer")}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = themeColors.mutedText;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = themeColors.text;
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      fontSize: isZoomed ? "24px" : "18px",
+                      lineHeight: 1.2,
+                      color: themeColors.text,
+                      textDecoration: "underline",
+                      textUnderlineOffset: "4px",
+                      cursor: "pointer",
+                      transition: "color 0.18s ease",
+                    }}
+                  >
+                    {copy.ux}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open("https://www.notion.so/notion3", "_blank", "noopener,noreferrer")}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = themeColors.mutedText;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = themeColors.text;
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      fontSize: isZoomed ? "24px" : "18px",
+                      lineHeight: 1.2,
+                      color: themeColors.text,
+                      textDecoration: "underline",
+                      textUnderlineOffset: "4px",
+                      cursor: "pointer",
+                      transition: "color 0.18s ease",
+                    }}
+                  >
+                    {copy.ai}
+                  </button>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: isZoomed ? "18px" : "14px",
+                      marginTop: isZoomed ? "18px" : "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {[
+                      {
+                        label: "Email",
+                        icon: emailIcon,
+                        href: "mailto:phoebeqincreative@gmail.com",
+                      },
+                      {
+                        label: "LinkedIn",
+                        icon: linkedinIcon,
+                        href: "https://www.linkedin.com/in/longyue-qin-9b0275266/",
+                      },
+                      {
+                        label: "Instagram",
+                        icon: instagramIcon,
+                        href: "https://www.instagram.com/qinlyismoon/",
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        aria-label={item.label}
+                        onClick={() => window.open(item.href, "_blank", "noopener,noreferrer")}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = "0.45";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = "1";
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: 1,
+                          transition: "opacity 0.18s ease",
+                        }}
+                      >
+                        <img
+                          src={item.icon}
+                          alt={item.label}
+                          style={{
+                            width: isZoomed ? "46px" : "38px",
+                            height: isZoomed ? "46px" : "38px",
+                            objectFit: "contain",
+                            display: "block",
+                            filter: isDarkMode ? "brightness(0) invert(1)" : "none",
+                            transition: "filter 0.18s ease, opacity 0.18s ease",
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: isZoomed ? "60px" : "20px",
+              transform: "translateX(-50%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: isZoomed ? "300px" : "236px",
+              maxWidth: "calc(100% - 32px)",
+              boxSizing: "border-box",
+              gap: 0,
+              padding: isZoomed ? "10px 12px" : "8px 10px",
+              borderRadius: "999px",
+              background: themeColors.controlBg,
+              border: themeColors.controlBorder,
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              boxShadow: isDarkMode
+                ? "0 10px 30px rgba(0,0,0,0.35)"
+                : "0 10px 30px rgba(0,0,0,0.12)",
+              zIndex: 80,
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleToggleLanguage}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: isZoomed ? "42px" : "36px",
+                borderRadius: "999px",
+                border: "none",
+                background: "transparent",
+                color: themeColors.controlText,
+                fontSize: isZoomed ? "22px" : "18px",
+                fontWeight: 500,
+                cursor: "pointer",
+                opacity: 1,
+                transition: "opacity 0.18s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.65";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+            >
+              {language === "en" ? "EN" : "中"}
+            </button>
+            <div
+              aria-hidden="true"
+              style={{
+                width: "1px",
+                alignSelf: "stretch",
+                background: isDarkMode
+                  ? "rgba(255,255,255,0.12)"
+                  : "rgba(255,255,255,0.22)",
+                margin: isZoomed ? "4px 8px" : "4px 6px",
+                borderRadius: "999px",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleToggleTheme}
+              aria-label="Toggle theme"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: isZoomed ? "42px" : "36px",
+                borderRadius: "999px",
+                border: "none",
+                background: "transparent",
+                color: themeColors.controlText,
+                fontSize: isZoomed ? "22px" : "18px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 1,
+                transition: "opacity 0.18s ease",
+                padding: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.65";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+            >
+              <img
+                src={isDarkMode ? moonIconUrl : sunIconUrl}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  width: isZoomed ? "22px" : "18px",
+                  height: isZoomed ? "22px" : "18px",
+                  objectFit: "contain",
+                  display: "block",
+                  filter: isDarkMode ? "brightness(0) invert(1)" : "none",
+                  opacity: 0.95,
+                }}
+              />
+            </button>
+            <div
+              aria-hidden="true"
+              style={{
+                width: "1px",
+                alignSelf: "stretch",
+                background: isDarkMode
+                  ? "rgba(255,255,255,0.12)"
+                  : "rgba(255,255,255,0.22)",
+                margin: isZoomed ? "4px 8px" : "4px 6px",
+                borderRadius: "999px",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleToggleMute}
+              aria-label="Toggle sound"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: isZoomed ? "42px" : "36px",
+                borderRadius: "999px",
+                border: "none",
+                background: "transparent",
+                color: themeColors.controlText,
+                fontSize: isZoomed ? "22px" : "18px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 1,
+                transition: "opacity 0.18s ease",
+                padding: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.65";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+            >
+              <img
+                src={isMuted ? volumeMuteIconUrl : volumeUpIconUrl}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  width: isZoomed ? "24px" : "20px",
+                  height: isZoomed ? "24px" : "20px",
+                  objectFit: "contain",
+                  display: "block",
+                  filter: isDarkMode ? "brightness(0) invert(1)" : "none",
+                  opacity: 0.95,
+                }}
+              />
+            </button>
+          </div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
