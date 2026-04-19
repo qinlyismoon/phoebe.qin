@@ -602,7 +602,7 @@ export default function FolderAvatar() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.open("https://www.notion.so/notion3", "_blank", "noopener,noreferrer")}
+                    onClick={() => window.open("https://www.notion.so/Phoebe-s-AI-Playground-3477fb6b97a580aea88ee3835e2d670c?source=copy_link", "_blank", "noopener,noreferrer")}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = themeColors.mutedText;
                     }}
